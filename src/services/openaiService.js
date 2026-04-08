@@ -24,6 +24,9 @@ function buildBusinessContext(analysis) {
     extras.push(
       `Si compartes pago por tarjeta, usa solo este enlace: ${analysis.paymentLink}. Menciona que la plataforma puede aplicar una pequena comision.`
     );
+    extras.push(
+      "Si la persona pregunta cómo pagar, explica brevemente transferencia y pago con tarjeta antes de escalar."
+    );
   }
 
   if (analysis.shouldSendWebsiteLink) {
@@ -53,13 +56,7 @@ function toConversationInput(session, incomingText) {
     content: message.content
   }));
 
-  return [
-    ...latest,
-    {
-      role: "user",
-      content: incomingText
-    }
-  ];
+  return latest.length ? latest : [{ role: "user", content: incomingText }];
 }
 
 export async function generateFreddyReply({ session, incomingText, analysis }) {
@@ -68,31 +65,37 @@ export async function generateFreddyReply({ session, incomingText, analysis }) {
   }
 
   try {
-    const response = await openai.responses.create({
+    const response = await openai.chat.completions.create({
       model: env.openAiModel,
-      instructions: `${FREDDY_SYSTEM_PROMPT}
+      temperature: 0.5,
+      max_tokens: 220,
+      messages: [
+        {
+          role: "system",
+          content: `${FREDDY_SYSTEM_PROMPT}
 
 Contexto interno:
-- Clasificacion actual: ${analysis.classification}
-- Intencion detectada: ${analysis.intent}
+- Clasificación actual: ${analysis.classification}
+- Intención detectada: ${analysis.intent}
 - Nombre del cliente: ${session.profile.name || "No disponible"}
 - Reglas extra:
 ${buildBusinessContext(analysis)}
 
 Instrucciones de salida:
-- Responde en espanol natural.
-- Maximo 120 palabras.
+- Responde en español natural.
+- Máximo 120 palabras.
+- Usa excelente ortografía.
 - No uses formato markdown complejo.
-- Si compartes un enlace, explica primero para que sirve.
-- No compartas mas de un formulario por conversacion.
-- Si el usuario quiere pagar o requiere atencion especial, confirma el escalamiento sin sonar robotico.`,
-      input: toConversationInput(session, incomingText),
-      text: {
-        verbosity: "low"
-      }
+- Si compartes un enlace, explica primero para qué sirve.
+- No compartas más de un formulario por conversación.
+- Si el usuario quiere pagar, responde a esa pregunta y luego ofrece conectar con una asesora.
+- Si el usuario rechaza la oferta, no insistas; responde con empatía y conserva la relación.`
+        },
+        ...toConversationInput(session, incomingText)
+      ]
     });
 
-    return response.output_text?.trim() || fallbackReply(analysis);
+    return response.choices?.[0]?.message?.content?.trim() || fallbackReply(analysis);
   } catch (error) {
     logger.error("Fallo al generar respuesta con OpenAI", {
       error: error.message
@@ -102,29 +105,33 @@ Instrucciones de salida:
 }
 
 function fallbackReply(analysis) {
+  if (analysis.intent === "quality_complaint") {
+    return "Tienes razón, gracias por decírmelo. Corrijo eso de inmediato. Estoy aquí para ayudarte con la información que necesites sobre nuestros cursos.";
+  }
+
+  if (analysis.shouldSendPaymentLink) {
+    return `Puedes pagar por transferencia a nombre de WPS Consulting Group o Wesfalia Pérez, o con tarjeta aquí: ${analysis.paymentLink}. La plataforma puede aplicar una pequeña comisión. Si quieres, también te conecto con una asesora para finalizar el proceso.`;
+  }
+
+  if (analysis.shouldSendForm) {
+    return `Te comparto el formulario de inscripción. Es rápido de completar y con eso aseguramos tu cupo: ${analysis.selectedFormLink}`;
+  }
+
+  if (analysis.shouldSendWebsiteLink) {
+    return `Si prefieres aprender a tu ritmo, también puedes ver nuestros cursos pregrabados aquí: ${analysis.websiteLink}`;
+  }
+
+  if (analysis.useRecoveryMessage) {
+    return `Es una pena que en esta ocasión no puedas participar. De todas formas, nos encantaría mantenernos en contacto contigo para futuras capacitaciones. Te comparto nuestro canal de WhatsApp donde publicamos vacantes, contenido de valor y novedades: ${analysis.recoveryChannelLink}`;
+  }
+
+  if (analysis.recommendedTopic) {
+    return `Por lo que me cuentas, te recomendaría ${analysis.recommendedTopic}. Todos nuestros cursos son online, duran entre 4 y 6 semanas y tienen una inversión de RD$3,500. Si quieres, te explico si ese curso es el más conveniente para ti o te sugiero otra opción.`;
+  }
+
   if (analysis.shouldEscalate) {
     return "Perfecto, te voy a conectar directamente con nuestra asesora para ayudarte mejor y finalizar el proceso.";
   }
 
-  if (analysis.shouldSendPaymentLink) {
-    return `Puedes realizar el pago con tarjeta aqui: ${analysis.paymentLink}. La plataforma puede aplicar una pequena comision.`;
-  }
-
-  if (analysis.shouldSendForm) {
-    return `Te comparto el formulario de inscripcion. Es rapido de completar y con eso aseguramos tu cupo: ${analysis.selectedFormLink}`;
-  }
-
-  if (analysis.shouldSendWebsiteLink) {
-    return `Si prefieres aprender a tu ritmo, tambien puedes ver nuestros cursos pregrabados aqui: ${analysis.websiteLink}`;
-  }
-
-  if (analysis.useRecoveryMessage) {
-    return `Es una pena que en esta ocasion no puedas participar. De todas formas, nos encantaria mantenernos en contacto contigo para futuras capacitaciones. Te comparto nuestro canal de WhatsApp: ${analysis.recoveryChannelLink}`;
-  }
-
-  if (analysis.recommendedTopic) {
-    return `Por lo que me cuentas, te recomendaria ${analysis.recommendedTopic}. Todos nuestros cursos son online, duran entre 4 y 6 semanas y tienen una inversion de RD$3,500. Si quieres, te explico cual te conviene mas.`;
-  }
-
-  return "Con gusto te ayudo. Tenemos capacitaciones practicas en Excel, Power BI, SQL, Python y Analisis de Datos. Cuentame que te interesa aprender y te orientare.";
+  return "Con gusto te ayudo. Tenemos capacitaciones prácticas en Excel, Power BI, SQL, Python y Análisis de Datos. Cuéntame qué te interesa aprender y te oriento.";
 }

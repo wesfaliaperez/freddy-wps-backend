@@ -38,6 +38,18 @@ export function analyzeLead({ text, session }) {
 
   if (
     hasAny(normalized, [
+      "falta ortografica",
+      "faltas ortograficas",
+      "ortografia",
+      "escribes mal",
+      "redaccion"
+    ])
+  ) {
+    intent = "quality_complaint";
+  }
+
+  if (
+    hasAny(normalized, [
       "hola",
       "buenas",
       "informacion",
@@ -178,7 +190,10 @@ export function analyzeLead({ text, session }) {
       "no gracias",
       "en este momento no",
       "no por ahora",
-      "ya no"
+      "ya no",
+      "no quiero nada",
+      "no deseo nada",
+      "dejalo asi"
     ])
   ) {
     intent = "lead_recovery";
@@ -197,6 +212,7 @@ export function analyzeLead({ text, session }) {
   return {
     intent,
     classification,
+    originalText: text,
     shouldEscalate,
     shouldSendForm,
     shouldSendPaymentLink,
