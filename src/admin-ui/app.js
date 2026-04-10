@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from "https://esm.sh/react@18";
-import { createRoot } from "https://esm.sh/react-dom@18/client";
-import htm from "https://esm.sh/htm@3/react";
+import React, { useEffect, useMemo, useState } from "https://cdn.jsdelivr.net/npm/react@18.3.1/+esm";
+import { createRoot } from "https://cdn.jsdelivr.net/npm/react-dom@18.3.1/client/+esm";
+import htm from "https://cdn.jsdelivr.net/npm/htm@3.1.1/+esm";
 
 const html = htm.bind(React.createElement);
 
@@ -512,4 +512,23 @@ function Dashboard() {
   `;
 }
 
-createRoot(document.getElementById("root")).render(html`<${Dashboard} />`);
+const rootElement = document.getElementById("root");
+
+function renderFatalError(error) {
+  rootElement.innerHTML = `
+    <div class="loading-state">
+      <div class="loading-card">
+        <div class="hero-eyebrow">Freddy Studio</div>
+        <h1 class="hero-title">No pudimos abrir el panel</h1>
+        <p class="hero-copy">Hubo un problema cargando la interfaz. Recarga la pagina y, si continua, revisa la consola del navegador.</p>
+        <p class="helper">${String(error?.message || error || "Error desconocido")}</p>
+      </div>
+    </div>
+  `;
+}
+
+try {
+  createRoot(rootElement).render(html`<${Dashboard} />`);
+} catch (error) {
+  renderFatalError(error);
+}
