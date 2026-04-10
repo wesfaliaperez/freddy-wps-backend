@@ -64,6 +64,11 @@ export async function generateFreddyReply({ session, incomingText, analysis }) {
     return WELCOME_MESSAGE;
   }
 
+  const deterministicReply = buildDeterministicReply(analysis);
+  if (deterministicReply) {
+    return deterministicReply;
+  }
+
   try {
     const response = await openai.chat.completions.create({
       model: env.openAiModel,
@@ -101,6 +106,37 @@ Instrucciones de salida:
       error: error.message
     });
     return fallbackReply(analysis);
+  }
+}
+
+function buildDeterministicReply(analysis) {
+  switch (analysis.intent) {
+    case "quality_complaint":
+      return "Tienes razón, gracias por decírmelo. Corregiré eso de inmediato. Si quieres, dime qué curso te interesa o qué información necesitas y con gusto te ayudo.";
+    case "payment":
+      return `Puedes realizar el pago por transferencia a nombre de WPS Consulting Group o Wesfalia Pérez. Si prefieres tarjeta, puedes usar este enlace: ${analysis.paymentLink}. La plataforma puede aplicar una pequeña comisión. Si quieres, también te conecto con una asesora para ayudarte a finalizar el proceso.`;
+    case "payment_confirmed":
+      return "¡Perfecto! Gracias por confirmarlo 🙌 Te voy a conectar directamente con nuestra asesora para validar tu pago y continuar con el proceso.";
+    case "enrollment":
+      return `Te dejo el formulario de inscripción 👇 Es rápido de completar y con eso aseguramos tu cupo: ${analysis.selectedFormLink}`;
+    case "lead_recovery":
+      return `Es una pena que en esta ocasión no puedas participar 😔 De todas formas, nos encantaría mantenernos en contacto contigo para futuras capacitaciones. Te comparto nuestro canal de WhatsApp donde publicamos vacantes, contenido de valor y novedades del mundo de datos e inteligencia artificial 🚀 ${analysis.recoveryChannelLink}`;
+    case "timing_objection":
+      return `Te entiendo 🙌 Tenemos opciones flexibles y también cursos pregrabados para que avances a tu ritmo. Puedes verlos aquí: ${analysis.websiteLink}`;
+    case "budget_objection":
+      return `Perfecto, lo entiendo 🙌 Si quieres, puedes completar este formulario y te contactamos cuando abras un próximo grupo: ${analysis.selectedFormLink}`;
+    case "hesitation":
+      return "Buenísimo 😊 Si quieres, te guardo el cupo mientras decides o te explico cuál curso encaja mejor contigo.";
+    case "self_paced":
+      return `Si prefieres aprender a tu ritmo, también puedes acceder a nuestros cursos pregrabados aquí: ${analysis.websiteLink}`;
+    case "course_guidance":
+      return "Claro. Si buscas algo práctico para oficina, Excel es muy buena base. Si te interesa visualización, Power BI. SQL te ayuda con bases de datos, Python con automatización y análisis avanzado, y Análisis de Datos te da una visión general. ¿Cuál de esas áreas te llama más la atención?";
+    case "course_details":
+      return "Todos nuestros cursos son online, duran entre 4 y 6 semanas, tienen una inversión de RD$3,500 e incluyen certificado, materiales, casos prácticos, proyecto final y soporte. Si me dices cuál curso te interesa, te oriento mejor.";
+    case "group_sale":
+      return "Perfecto 🙌 Te voy a conectar directamente con nuestra asesora para ayudarte mejor con la propuesta para empresa o grupo y finalizar el proceso.";
+    default:
+      return "";
   }
 }
 

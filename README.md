@@ -13,6 +13,7 @@ Backend de Freddy, el asistente comercial y de atencion al cliente de WPS Consul
 
 - Webhook `GET /webhook` para verificacion de Meta
 - Webhook `POST /webhook` para recibir mensajes entrantes
+- Panel `GET /admin` para editar cursos, precios, links, tono y respuestas base
 - Respuestas naturales generadas con OpenAI usando el prompt de Freddy
 - Historial por usuario con tope de 20 mensajes
 - Clasificacion de leads: `consulta`, `interesado`, `caliente`, `pago_realizado`
@@ -41,6 +42,7 @@ Completa las variables del archivo `.env`.
 
 - `OPENAI_API_KEY`: API key de OpenAI
 - `OPENAI_MODEL`: modelo para generar respuestas de Freddy
+- `ADMIN_USERNAME` y `ADMIN_PASSWORD`: acceso al panel de administracion
 - `WHATSAPP_VERIFY_TOKEN`: token para verificar el webhook en Meta
 - `WHATSAPP_ACCESS_TOKEN`: token del numero de WhatsApp
 - `WHATSAPP_PHONE_NUMBER_ID`: Phone Number ID de Meta
@@ -129,9 +131,42 @@ https://tu-app.railway.app/webhook
 
 ## Endpoints
 
+### `GET /`
+
+Estado base del servicio y endpoints disponibles.
+
 ### `GET /health`
 
 Estado del servicio.
+
+### `GET /admin`
+
+Panel protegido para editar la configuracion comercial del bot.
+
+### `GET /admin/api/config`
+
+Devuelve la configuracion editable actual del bot.
+
+### `PUT /admin/api/config`
+
+Guarda cambios desde el panel administrativo.
+
+## Panel administrativo
+
+Abre:
+
+```text
+/admin
+```
+
+Desde ahi puedes actualizar sin tocar codigo:
+
+- cursos activos
+- precios y duracion
+- sitio oficial y links de pago
+- mensaje de bienvenida
+- respuestas base
+- tono e instrucciones comerciales
 
 ### `GET /webhook`
 

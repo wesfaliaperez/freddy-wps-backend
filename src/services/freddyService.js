@@ -1,8 +1,8 @@
 import { conversationStore } from "./conversationStore.js";
-import { analyzeLead } from "./leadAnalyzer.js";
+import { analyzeLead } from "./freddyLeadAnalyzer.js";
 import { escalateLead } from "./escalationService.js";
 import { sendMessage } from "./channelRouter.js";
-import { generateFreddyReply } from "./openaiService.js";
+import { generateFreddyReply } from "./freddyReplyService.js";
 import { logger } from "../utils/logger.js";
 
 function extractText(message) {

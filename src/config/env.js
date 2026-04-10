@@ -23,6 +23,8 @@ export const env = {
   nodeEnv: process.env.NODE_ENV || "development",
   port: Number(process.env.PORT || 3000),
   appBaseUrl: process.env.APP_BASE_URL || "http://localhost:3000",
+  adminUsername: process.env.ADMIN_USERNAME || "admin",
+  adminPassword: process.env.ADMIN_PASSWORD || "freddy-admin-2026",
   openAiApiKey: process.env.OPENAI_API_KEY,
   openAiModel: process.env.OPENAI_MODEL || "gpt-4.1-mini",
   whatsappVerifyToken: process.env.WHATSAPP_VERIFY_TOKEN,
