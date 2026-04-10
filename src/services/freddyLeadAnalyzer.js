@@ -32,14 +32,28 @@ function findMatchingCourse(text, config) {
   );
 }
 
-function pickFormLink(userId) {
-  const config = getBotConfig();
-  const source = config.forms?.length ? config.forms : FORM_LINKS;
+function getFormUrl(form) {
+  if (!form) return "";
+  return typeof form === "string" ? form : form.url || "";
+}
+
+function pickFormLink(userId, config, matchedCourse) {
+  if (matchedCourse?.enrollmentLink) {
+    return matchedCourse.enrollmentLink;
+  }
+
+  const scopedForms = (config.forms || []).filter((form) => {
+    if (typeof form === "string") return true;
+    if (!form.course) return true;
+    return normalizeText(form.course) === normalizeText(matchedCourse?.name || "");
+  });
+
+  const source = scopedForms.length ? scopedForms : config.forms?.length ? config.forms : FORM_LINKS;
   const seed = Array.from(userId).reduce(
     (sum, char) => sum + char.charCodeAt(0),
     0
   );
-  return source[seed % source.length];
+  return getFormUrl(source[seed % source.length]);
 }
 
 export function analyzeLead({ text, session }) {
@@ -222,7 +236,8 @@ export function analyzeLead({ text, session }) {
     recommendedTopic,
     matchedCourse,
     escalationReason,
-    selectedFormLink: session.profile.sentFormLink || pickFormLink(session.userId),
+    selectedFormLink:
+      session.profile.sentFormLink || pickFormLink(session.userId, config, matchedCourse),
     paymentLink: config.business.paymentLink || PAYMENT_LINK,
     websiteLink: config.business.websiteLink || WEBSITE_LINK,
     recoveryChannelLink:

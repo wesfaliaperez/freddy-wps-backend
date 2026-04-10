@@ -47,12 +47,16 @@ Contexto interno:
 - Clasificacion actual: ${analysis.classification}
 - Intencion detectada: ${analysis.intent}
 - Nombre del cliente: ${session.profile.name || "No disponible"}
+- Curso detectado: ${analysis.matchedCourse?.name || analysis.recommendedTopic || "No definido"}
+- Link de inscripcion sugerido para esta conversacion: ${analysis.selectedFormLink || "No aplica"}
 
 Instrucciones:
 - Responde en maximo 120 palabras.
 - Responde exactamente a la ultima pregunta del cliente.
 - Si compartes un enlace, explica primero para que sirve.
 - No compartas mas de un formulario por conversacion.
+- Si el cliente pide inscripcion o enlace, usa el link de inscripcion sugerido de esta conversacion.
+- Si el cliente pregunta por un curso, prioriza el precio, duracion, modalidad y resumen del curso detectado.
 - Si el usuario rechaza la oferta, responde con empatia y deja la puerta abierta.`;
 }
 
@@ -90,12 +94,6 @@ function buildDeterministicReply(analysis, config) {
       return config.responses.hesitation;
     case "self_paced":
       return `Si prefieres aprender a tu ritmo, tambien puedes acceder a nuestros cursos pregrabados aqui: ${analysis.websiteLink}`;
-    case "course_guidance":
-      return `Claro. Ahora mismo te puedo recomendar estas opciones: ${buildCourseGuidance(config)}. Si me dices cual area te interesa mas, te oriento mejor.`;
-    case "course_details":
-      return `Todos nuestros cursos son ${selectedCourse?.modality || config.commercial.defaultModality}, duran ${selectedCourse?.duration || config.commercial.defaultDuration}, tienen una inversion de ${selectedCourse?.price || config.commercial.defaultPrice} e incluyen ${config.commercial.includes.join(", ")}.${selectedCourse ? ` En tu caso, ${selectedCourse.name} es ideal porque ${selectedCourse.summary.toLowerCase()}` : " Si me dices cual curso te interesa, te oriento mejor."}`;
-    case "course_interest":
-      return `${selectedCourse?.name || analysis.recommendedTopic} puede ser una muy buena opcion para ti. ${selectedCourse?.summary || "Es una capacitacion practica y orientada a resultados."} Tiene una inversion de ${selectedCourse?.price || config.commercial.defaultPrice}, dura ${selectedCourse?.duration || config.commercial.defaultDuration} y la modalidad es ${selectedCourse?.modality || config.commercial.defaultModality}. Si quieres, te envio el enlace de inscripcion.`;
     case "group_sale":
       return config.responses.escalation;
     default:
