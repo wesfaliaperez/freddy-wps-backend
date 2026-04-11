@@ -42,6 +42,73 @@ a {
   padding: 28px;
 }
 
+.brand-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 22px;
+  padding: 18px 22px;
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  background: rgba(255, 250, 242, 0.88);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow);
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #1c2434, #39445c);
+  color: #f7c15d;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.brand-copy {
+  flex: 1;
+  display: grid;
+  gap: 3px;
+}
+
+.brand-kicker {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.brand-title {
+  margin: 0;
+  font-size: clamp(28px, 4vw, 44px);
+  letter-spacing: -0.05em;
+}
+
+.brand-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: end;
+}
+
+.top-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: white;
+  text-decoration: none;
+  font-weight: 800;
+}
+
 .studio-header {
   display: grid;
   grid-template-columns: 1.3fr 0.7fr;
@@ -152,6 +219,53 @@ a {
   gap: 22px;
 }
 
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.metric-card {
+  padding: 18px 20px;
+  border-radius: 24px;
+  border: 1px solid var(--line);
+  background: rgba(255, 250, 242, 0.94);
+  box-shadow: var(--shadow);
+}
+
+.metric-accent {
+  background: linear-gradient(135deg, rgba(245, 176, 44, 0.18), rgba(255, 247, 234, 0.98));
+}
+
+.metric-success {
+  background: linear-gradient(135deg, rgba(22, 106, 77, 0.1), rgba(255, 250, 242, 0.98));
+}
+
+.metric-label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.metric-value {
+  display: block;
+  font-size: clamp(26px, 3vw, 38px);
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+.metric-helper {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .sidebar-stack {
   display: grid;
   gap: 18px;
@@ -161,6 +275,10 @@ a {
 .panel-card {
   border-radius: 24px;
   padding: 20px;
+}
+
+.spotlight-card {
+  background: linear-gradient(180deg, rgba(255, 247, 234, 0.98), rgba(255, 241, 214, 0.96));
 }
 
 .panel-title {
@@ -333,6 +451,12 @@ a {
   padding: 18px;
 }
 
+.course-name-preview {
+  margin: 8px 0 0;
+  font-size: 22px;
+  letter-spacing: -0.04em;
+}
+
 .course-card-header,
 .form-card-header {
   display: flex;
@@ -362,6 +486,10 @@ a {
   gap: 12px;
 }
 
+.split-fields--courses {
+  align-items: end;
+}
+
 .inline-checkbox {
   display: inline-flex;
   align-items: center;
@@ -376,6 +504,19 @@ a {
   font-size: 13px;
   color: var(--muted);
   line-height: 1.55;
+}
+
+.date-pill,
+.course-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 54px;
+  padding: 0 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  font-weight: 700;
 }
 
 .sticky-actions {
@@ -425,12 +566,24 @@ a {
 }
 
 @media (max-width: 1120px) {
+  .brand-bar,
   .studio-header,
+  .metrics-grid,
   .dashboard-grid,
   .two-col,
   .cards-grid,
   .split-fields {
     grid-template-columns: 1fr;
+  }
+
+  .brand-bar {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .brand-actions {
+    width: 100%;
+    justify-content: start;
   }
 }
 

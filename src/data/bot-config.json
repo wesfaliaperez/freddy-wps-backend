@@ -44,6 +44,8 @@
       "price": "RD$3,500",
       "duration": "4 a 6 semanas",
       "modality": "Online (en vivo o pregrabado)",
+      "startDate": "",
+      "enrollmentLink": "",
       "active": true
     },
     {
@@ -56,6 +58,8 @@
       "price": "RD$3,500",
       "duration": "4 a 6 semanas",
       "modality": "Online (en vivo o pregrabado)",
+      "startDate": "",
+      "enrollmentLink": "",
       "active": true
     },
     {
@@ -69,6 +73,8 @@
       "price": "RD$3,500",
       "duration": "4 a 6 semanas",
       "modality": "Online (en vivo o pregrabado)",
+      "startDate": "",
+      "enrollmentLink": "",
       "active": true
     },
     {
@@ -83,6 +89,8 @@
       "price": "RD$3,500",
       "duration": "4 a 6 semanas",
       "modality": "Online (en vivo o pregrabado)",
+      "startDate": "",
+      "enrollmentLink": "",
       "active": true
     },
     {
@@ -96,6 +104,8 @@
       "price": "RD$3,500",
       "duration": "4 a 6 semanas",
       "modality": "Online (en vivo o pregrabado)",
+      "startDate": "",
+      "enrollmentLink": "",
       "active": true
     }
   ],

@@ -22,6 +22,19 @@ function buildCourseGuidance(config) {
     .join("; ");
 }
 
+function formatCourseDate(value) {
+  if (!value) return "";
+
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat("es-DO", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(date);
+}
+
 function buildSystemPrompt(config, analysis, session) {
   return `Eres ${config.business.assistantName}, asesor comercial oficial de ${config.business.companyName}.
 
@@ -29,7 +42,7 @@ Hablas de forma ${config.tone.style}.
 Escribes con muy buena ortografia en espanol.
 No usas lenguaje robotico.
 No inventas datos.
-No das fechas especificas.
+No das fechas especificas si no existen en la configuracion.
 No presionas de forma agresiva.
 
 Contexto del negocio:
@@ -39,7 +52,7 @@ Contexto del negocio:
 - Modalidad base: ${config.commercial.defaultModality}
 - Incluye: ${config.commercial.includes.join(", ")}
 - Cursos: ${config.courses
-    .map((course) => `${course.name} (${course.summary})`)
+    .map((course) => `${course.name} (${course.summary})${formatCourseDate(course.startDate) ? ` - Fecha configurada: ${formatCourseDate(course.startDate)}` : ""}`)
     .join("; ")}
 - Reglas extra de tono: ${config.tone.customInstructions || "ninguna"}
 
@@ -57,6 +70,7 @@ Instrucciones:
 - No compartas mas de un formulario por conversacion.
 - Si el cliente pide inscripcion o enlace, usa el link de inscripcion sugerido de esta conversacion.
 - Si el cliente pregunta por un curso, prioriza el precio, duracion, modalidad y resumen del curso detectado.
+- Solo menciona fecha si el curso detectado tiene una fecha configurada.
 - Si el usuario rechaza la oferta, responde con empatia y deja la puerta abierta.`;
 }
 
@@ -74,24 +88,17 @@ function toConversationInput(session, incomingText) {
 function buildDeterministicReply(analysis, config) {
   const selectedCourse =
     analysis.matchedCourse || findConfiguredCourse(config, analysis.recommendedTopic);
+  const courseDate = formatCourseDate(selectedCourse?.startDate);
 
   switch (analysis.intent) {
-    case "quality_complaint":
-      return "Tienes razon, gracias por decirmelo. Voy a corregir eso de inmediato. Si quieres, dime que curso te interesa o que informacion necesitas y con gusto te ayudo.";
     case "payment":
       return `Puedes realizar el pago por transferencia a nombre de WPS Consulting Group o Wesfalia Perez. Si prefieres tarjeta, puedes usar este enlace: ${analysis.paymentLink}. La plataforma puede aplicar una pequena comision. Si quieres, tambien te conecto con una asesora para finalizar el proceso.`;
     case "payment_confirmed":
       return "Perfecto. Gracias por confirmarlo. Te voy a conectar directamente con nuestra asesora para validar tu pago y continuar con el proceso.";
     case "enrollment":
-      return `Te dejo el formulario de inscripcion${selectedCourse ? ` para ${selectedCourse.name}` : ""}. Es rapido de completar y con eso aseguramos tu cupo: ${analysis.selectedFormLink}`;
+      return `Te dejo el formulario de inscripcion${selectedCourse ? ` para ${selectedCourse.name}` : ""}${courseDate ? `. La fecha configurada es ${courseDate}` : ""}. Es rapido de completar y con eso aseguramos tu cupo: ${analysis.selectedFormLink}`;
     case "lead_recovery":
       return `${config.responses.leadRecovery} Te comparto nuestro canal de WhatsApp: ${analysis.recoveryChannelLink}`;
-    case "timing_objection":
-      return `${config.responses.timingObjection} Puedes verlos aqui: ${analysis.websiteLink}`;
-    case "budget_objection":
-      return `${config.responses.budgetObjection} ${analysis.selectedFormLink}`;
-    case "hesitation":
-      return config.responses.hesitation;
     case "self_paced":
       return `Si prefieres aprender a tu ritmo, tambien puedes acceder a nuestros cursos pregrabados aqui: ${analysis.websiteLink}`;
     case "group_sale":
@@ -104,9 +111,10 @@ function buildDeterministicReply(analysis, config) {
 function fallbackReply(analysis, config) {
   const selectedCourse =
     analysis.matchedCourse || findConfiguredCourse(config, analysis.recommendedTopic);
+  const courseDate = formatCourseDate(selectedCourse?.startDate);
 
   if (analysis.recommendedTopic) {
-    return `Por lo que me cuentas, te recomendaria ${analysis.recommendedTopic}. ${selectedCourse?.summary || "Es una opcion muy practica para desarrollar esa habilidad."} La inversion es ${selectedCourse?.price || config.commercial.defaultPrice} y la duracion es ${selectedCourse?.duration || config.commercial.defaultDuration}. Si quieres, te explico si ese curso es el mas conveniente para ti o te sugiero otra opcion.`;
+    return `Por lo que me cuentas, te recomendaria ${analysis.recommendedTopic}. ${selectedCourse?.summary || "Es una opcion muy practica para desarrollar esa habilidad."} La inversion es ${selectedCourse?.price || config.commercial.defaultPrice} y la duracion es ${selectedCourse?.duration || config.commercial.defaultDuration}.${courseDate ? ` La fecha configurada es ${courseDate}.` : ""} Si quieres, te explico si ese curso es el mas conveniente para ti o te sugiero otra opcion.`;
   }
 
   if (analysis.shouldEscalate) {

@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from "https://cdn.jsdelivr.net/npm/react@18.3.1/+esm";
-import { createRoot } from "https://cdn.jsdelivr.net/npm/react-dom@18.3.1/client/+esm";
-import htm from "https://cdn.jsdelivr.net/npm/htm@3.1.1/+esm";
+import React, { useEffect, useMemo, useState } from "https://esm.sh/react@18.3.1";
+import { createRoot } from "https://esm.sh/react-dom@18.3.1/client";
+import htm from "https://esm.sh/htm@3.1.1";
 
 const html = htm.bind(React.createElement);
 
@@ -11,6 +11,7 @@ const emptyCourse = () => ({
   price: "RD$3,500",
   duration: "4 a 6 semanas",
   modality: "Online (en vivo o pregrabado)",
+  startDate: "",
   enrollmentLink: "",
   active: true
 });
@@ -54,6 +55,45 @@ function linesFromArray(items) {
   return (items || []).join("\n");
 }
 
+function safeDate(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value || "") ? value : "";
+}
+
+function formatDateForHumans(value) {
+  if (!value) return "Sin fecha definida";
+
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return "Sin fecha definida";
+
+  return new Intl.DateTimeFormat("es-DO", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(date);
+}
+
+function normalizeConfig(data) {
+  return {
+    ...data,
+    commercial: {
+      ...data.commercial,
+      includesText: linesFromArray(data.commercial.includes)
+    },
+    tone: {
+      ...data.tone,
+      writingRulesText: linesFromArray(data.tone.writingRules)
+    },
+    forms: normalizeForms(data.forms),
+    courses: (data.courses || []).map((course) => ({
+      ...emptyCourse(),
+      ...course,
+      startDate: safeDate(course.startDate),
+      keywords: course.keywords || [],
+      keywordsText: linesFromArray(course.keywords || [])
+    }))
+  };
+}
+
 function Dashboard() {
   const [config, setConfig] = useState(null);
   const [status, setStatus] = useState({ kind: "info", text: "Cargando configuracion..." });
@@ -63,15 +103,7 @@ function Dashboard() {
     fetch("/admin/api/config")
       .then((response) => response.json())
       .then((data) => {
-        setConfig({
-          ...data,
-          forms: normalizeForms(data.forms),
-          courses: (data.courses || []).map((course) => ({
-            ...emptyCourse(),
-            ...course,
-            keywords: course.keywords || []
-          }))
-        });
+        setConfig(normalizeConfig(data));
         setStatus({ kind: "success", text: "Configuracion cargada correctamente." });
       })
       .catch(() => {
@@ -81,6 +113,14 @@ function Dashboard() {
 
   const activeCourses = useMemo(
     () => (config?.courses || []).filter((course) => course.active !== false).length,
+    [config]
+  );
+
+  const configuredDates = useMemo(
+    () =>
+      (config?.courses || []).filter(
+        (course) => course.active !== false && safeDate(course.startDate)
+      ).length,
     [config]
   );
 
@@ -179,6 +219,7 @@ function Dashboard() {
       },
       courses: config.courses.map((course) => ({
         ...course,
+        startDate: safeDate(course.startDate),
         keywords: parseLines(course.keywordsText || "")
       })),
       forms: denormalizeForms(config.forms)
@@ -203,24 +244,7 @@ function Dashboard() {
         throw new Error(data.message || "No se pudo guardar.");
       }
 
-      setConfig({
-        ...data.config,
-        commercial: {
-          ...data.config.commercial,
-          includesText: linesFromArray(data.config.commercial.includes)
-        },
-        tone: {
-          ...data.config.tone,
-          writingRulesText: linesFromArray(data.config.tone.writingRules)
-        },
-        forms: normalizeForms(data.config.forms),
-        courses: (data.config.courses || []).map((course) => ({
-          ...emptyCourse(),
-          ...course,
-          keywords: course.keywords || [],
-          keywordsText: linesFromArray(course.keywords || [])
-        }))
-      });
+      setConfig(normalizeConfig(data.config));
       setStatus({ kind: "success", text: "Cambios guardados correctamente." });
     } catch (error) {
       setStatus({ kind: "error", text: error.message });
@@ -245,6 +269,22 @@ function Dashboard() {
 
   return html`
     <div className="studio-shell">
+      <div className="brand-bar">
+        <div className="brand-mark">WPS</div>
+        <div className="brand-copy">
+          <div className="brand-kicker">WPS Consulting Group</div>
+          <h2 className="brand-title">Freddy Studio</h2>
+        </div>
+        <div className="brand-actions">
+          <a className="top-link" href=${config.business.websiteLink} target="_blank" rel="noreferrer">
+            Ver sitio oficial
+          </a>
+          <button className="button" type="button" disabled=${saving} onClick=${saveConfig}>
+            ${saving ? "Guardando..." : "Guardar cambios"}
+          </button>
+        </div>
+      </div>
+
       <header className="studio-header">
         <section className="hero-card">
           <div className="hero-eyebrow">Freddy Studio</div>
@@ -268,6 +308,29 @@ function Dashboard() {
           </ul>
         </aside>
       </header>
+
+      <section className="metrics-grid">
+        <article className="metric-card metric-accent">
+          <span className="metric-label">Cursos activos</span>
+          <strong className="metric-value">${activeCourses}</strong>
+          <p className="metric-helper">Programas listos para vender hoy.</p>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Cursos con fecha</span>
+          <strong className="metric-value">${configuredDates}</strong>
+          <p className="metric-helper">Cursos con inicio o vigencia definida.</p>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Precio base</span>
+          <strong className="metric-value">${config.commercial.defaultPrice}</strong>
+          <p className="metric-helper">Referencia comercial general.</p>
+        </article>
+        <article className="metric-card metric-success">
+          <span className="metric-label">Canal principal</span>
+          <strong className="metric-value">WhatsApp</strong>
+          <p className="metric-helper">Webhook conectado al bot.</p>
+        </article>
+      </section>
 
       <div className="dashboard-grid">
         <aside className="sidebar-stack">
@@ -372,7 +435,7 @@ function Dashboard() {
             <div className="section-header">
               <div>
                 <h3>Cursos disponibles</h3>
-                <p>Define cada curso con su resumen, keywords, precio, modalidad y link de inscripcion propio.</p>
+                <p>Define cada curso con su resumen, keywords, precio, modalidad, fecha y link de inscripcion propio.</p>
               </div>
               <div className="toolbar">
                 <button className="button" type="button" onClick=${addCourse}>Agregar curso</button>
@@ -406,6 +469,24 @@ function Dashboard() {
                     <div className="field">
                       <label>Modalidad</label>
                       <input value=${course.modality} onInput=${(event) => updateCourse(index, "modality", event.target.value)} />
+                    </div>
+                  </div>
+                  <div className="split-fields split-fields--courses">
+                    <div className="field">
+                      <label>Fecha de inicio o vigencia</label>
+                      <input
+                        type="date"
+                        value=${safeDate(course.startDate)}
+                        onInput=${(event) => updateCourse(index, "startDate", event.target.value)}
+                      />
+                    </div>
+                    <div className="field">
+                      <label>Vista rapida de la fecha</label>
+                      <div className="date-pill">${formatDateForHumans(course.startDate)}</div>
+                    </div>
+                    <div className="field">
+                      <label>Estado del curso</label>
+                      <div className="course-meta-pill">${course.active !== false ? "Activo" : "Inactivo"}</div>
                     </div>
                   </div>
                   <div className="field">
