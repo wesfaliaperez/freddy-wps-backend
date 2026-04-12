@@ -5,6 +5,9 @@ import { sendMessage } from "./channelRouter.js";
 import { generateFreddyReply } from "./freddyReplyService.js";
 import { logger } from "../utils/logger.js";
 
+const processedInboundIds = [];
+const PROCESSED_IDS_LIMIT = 300;
+
 function extractText(message) {
   if (!message) return "";
 
@@ -27,44 +30,83 @@ function extractText(message) {
   return "";
 }
 
-export async function processIncomingWhatsAppMessage({ message, contact }) {
-  const userId = message.from;
-  const incomingText = extractText(message).trim();
+function extractEvolutionText(message) {
+  if (!message) return "";
 
-  if (!incomingText) {
+  return (
+    message.conversation ||
+    message.extendedTextMessage?.text ||
+    message.imageMessage?.caption ||
+    message.videoMessage?.caption ||
+    message.buttonsResponseMessage?.selectedDisplayText ||
+    message.listResponseMessage?.title ||
+    message.templateButtonReplyMessage?.selectedDisplayText ||
+    ""
+  );
+}
+
+function rememberProcessedId(messageId) {
+  if (!messageId) {
+    return false;
+  }
+
+  if (processedInboundIds.includes(messageId)) {
+    return true;
+  }
+
+  processedInboundIds.push(messageId);
+
+  if (processedInboundIds.length > PROCESSED_IDS_LIMIT) {
+    processedInboundIds.shift();
+  }
+
+  return false;
+}
+
+async function processIncomingText({
+  userId,
+  incomingText,
+  profileName = "",
+  rawMessageType = "text"
+}) {
+  const cleanUserId = String(userId || "").trim();
+  const cleanText = String(incomingText || "").trim();
+
+  if (!cleanText) {
     logger.info("Mensaje no soportado o vacio, se omite", {
-      userId,
-      messageType: message.type
+      userId: cleanUserId,
+      messageType: rawMessageType
     });
     return;
   }
 
-  const session = conversationStore.getSession(userId);
+  const session = conversationStore.getSession(cleanUserId);
 
-  if (contact?.profile?.name && !session.profile.name) {
-    conversationStore.updateProfile(userId, {
-      name: contact.profile.name
+  if (profileName && !session.profile.name) {
+    conversationStore.updateProfile(cleanUserId, {
+      name: profileName
     });
   }
 
-  conversationStore.saveMessage(userId, {
+  conversationStore.saveMessage(cleanUserId, {
     role: "user",
-    content: incomingText,
+    content: cleanText,
     channel: "whatsapp",
     createdAt: new Date().toISOString()
   });
 
-  const refreshedSession = conversationStore.getSession(userId);
+  const refreshedSession = conversationStore.getSession(cleanUserId);
   const analysis = analyzeLead({
-    text: incomingText,
+    text: cleanText,
     session: refreshedSession
   });
   const wasEscalated = refreshedSession.profile.isEscalated;
 
-  conversationStore.updateProfile(userId, {
+  conversationStore.updateProfile(cleanUserId, {
     classification: analysis.classification,
     currentIntent: analysis.intent,
-    interestTopic: analysis.recommendedTopic || refreshedSession.profile.interestTopic,
+    interestTopic:
+      analysis.recommendedTopic || refreshedSession.profile.interestTopic,
     sentFormLink:
       refreshedSession.profile.sentFormLink ||
       (analysis.shouldSendForm ? analysis.selectedFormLink : ""),
@@ -74,20 +116,20 @@ export async function processIncomingWhatsAppMessage({ message, contact }) {
       refreshedSession.profile.sentWebsiteLink || analysis.shouldSendWebsiteLink
   });
 
-  const updatedSession = conversationStore.getSession(userId);
+  const updatedSession = conversationStore.getSession(cleanUserId);
   const reply = await generateFreddyReply({
     session: updatedSession,
-    incomingText,
+    incomingText: cleanText,
     analysis
   });
 
   await sendMessage({
     channel: "whatsapp",
-    to: userId,
+    to: cleanUserId,
     body: reply
   });
 
-  conversationStore.saveMessage(userId, {
+  conversationStore.saveMessage(cleanUserId, {
     role: "assistant",
     content: reply,
     channel: "whatsapp",
@@ -98,11 +140,51 @@ export async function processIncomingWhatsAppMessage({ message, contact }) {
     await escalateLead({
       session: updatedSession,
       analysis,
-      lastMessage: incomingText
+      lastMessage: cleanText
     });
 
-    conversationStore.updateProfile(userId, {
+    conversationStore.updateProfile(cleanUserId, {
       isEscalated: true
     });
   }
+}
+
+export async function processIncomingWhatsAppMessage({ message, contact }) {
+  const messageId = message?.id;
+
+  if (rememberProcessedId(messageId)) {
+    logger.info("Mensaje duplicado de Meta omitido", { messageId });
+    return;
+  }
+
+  await processIncomingText({
+    userId: message.from,
+    incomingText: extractText(message),
+    profileName: contact?.profile?.name || "",
+    rawMessageType: message?.type || "unknown"
+  });
+}
+
+export async function processIncomingEvolutionMessage({ data }) {
+  const messageId = data?.key?.id;
+
+  if (data?.key?.fromMe) {
+    logger.info("Evento fromMe de Evolution omitido", { messageId });
+    return;
+  }
+
+  if (rememberProcessedId(messageId)) {
+    logger.info("Mensaje duplicado de Evolution omitido", { messageId });
+    return;
+  }
+
+  const remoteJid = data?.key?.remoteJid || "";
+  const userId = remoteJid.split("@")[0].replace(/\D/g, "");
+
+  await processIncomingText({
+    userId,
+    incomingText: extractEvolutionText(data?.message),
+    profileName: data?.pushName || data?.sender || "",
+    rawMessageType: data?.messageType || "unknown"
+  });
 }

@@ -15,7 +15,8 @@ app.get("/", (_req, res) => {
     message: "Freddy API en línea",
     endpoints: {
       health: "/health",
-      webhook: "/webhook"
+      webhook: "/webhook",
+      webhookEvolution: "/webhook/evolution"
     },
     timestamp: new Date().toISOString()
   });

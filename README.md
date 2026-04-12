@@ -1,18 +1,19 @@
 # Freddy Backend
 
-Backend de Freddy, el asistente comercial y de atencion al cliente de WPS Consulting Group, listo para integrarse con WhatsApp Cloud API de Meta y OpenAI.
+Backend de Freddy, el asistente comercial y de atencion al cliente de WPS Consulting Group, listo para integrarse con Evolution API o WhatsApp Cloud API de Meta y OpenAI.
 
 ## Stack
 
 - Node.js + Express
 - OpenAI API
-- Webhook de WhatsApp (Meta)
+- Webhook de WhatsApp (Evolution API o Meta)
 - Arquitectura preparada para multiples canales
 
 ## Funcionalidades
 
 - Webhook `GET /webhook` para verificacion de Meta
 - Webhook `POST /webhook` para recibir mensajes entrantes
+- Webhook `POST /webhook/evolution` para Evolution API
 - Panel `GET /admin` para editar cursos, precios, links, tono y respuestas base
 - Respuestas naturales generadas con OpenAI usando el prompt de Freddy
 - Historial por usuario con tope de 20 mensajes
@@ -26,7 +27,7 @@ Backend de Freddy, el asistente comercial y de atencion al cliente de WPS Consul
 ## Requisitos
 
 - Node.js 18.18+ o superior
-- Cuenta de Meta WhatsApp Cloud API
+- Cuenta de Evolution API o Meta WhatsApp Cloud API
 - API key de OpenAI
 
 ## Instalacion
@@ -43,9 +44,14 @@ Completa las variables del archivo `.env`.
 - `OPENAI_API_KEY`: API key de OpenAI
 - `OPENAI_MODEL`: modelo para generar respuestas de Freddy
 - `ADMIN_USERNAME` y `ADMIN_PASSWORD`: acceso al panel de administracion
+- `WHATSAPP_PROVIDER`: `meta` o `evolution`
 - `WHATSAPP_VERIFY_TOKEN`: token para verificar el webhook en Meta
-- `WHATSAPP_ACCESS_TOKEN`: token del numero de WhatsApp
+- `WHATSAPP_ACCESS_TOKEN`: token del numero de WhatsApp de Meta
 - `WHATSAPP_PHONE_NUMBER_ID`: Phone Number ID de Meta
+- `EVOLUTION_API_URL`: URL base de tu servidor Evolution
+- `EVOLUTION_API_KEY`: API key de Evolution
+- `EVOLUTION_INSTANCE`: nombre de la instancia conectada a WhatsApp
+- `EVOLUTION_WEBHOOK_SECRET`: opcional, para validar el webhook entrante de Evolution
 - `WPS_ESCALATION_EMAIL`: correo para alertas comerciales
 - `WPS_ESCALATION_WHATSAPP_NUMBER`: numero interno para escalar oportunidades
 - `SMTP_*`: configuracion opcional para envio real de emails
@@ -88,6 +94,26 @@ https://abc123.ngrok-free.app
 - Callback URL: `https://abc123.ngrok-free.app/webhook`
 - Verify token: el mismo valor de `WHATSAPP_VERIFY_TOKEN`
 
+## Configurar Evolution API
+
+1. Define en `.env`:
+
+```bash
+WHATSAPP_PROVIDER=evolution
+EVOLUTION_API_URL=https://tu-evolution
+EVOLUTION_API_KEY=tu_api_key
+EVOLUTION_INSTANCE=freddy
+EVOLUTION_WEBHOOK_SECRET=opcional
+```
+
+2. En tu instancia de Evolution configura el webhook:
+
+- URL recomendada: `https://tu-dominio/webhook/evolution`
+- Metodo: `POST`
+- Evento requerido: `messages.upsert`
+
+3. Si quieres validar el origen del webhook, usa el mismo valor de `EVOLUTION_WEBHOOK_SECRET` en Evolution y en tu `.env`.
+
 ## Flujo conversacional de Freddy
 
 Freddy combina reglas comerciales con generacion natural:
@@ -109,7 +135,24 @@ Freddy combina reglas comerciales con generacion natural:
 - El repositorio de conversaciones actual usa almacenamiento en memoria para un arranque rapido.
 - La capa `conversationStore` esta separada para reemplazarla facilmente por Redis, Postgres o MongoDB en produccion.
 - El backend ignora eventos de estado de WhatsApp y procesa solo mensajes entrantes.
+- Evolution puede reenviar eventos duplicados; Freddy omite mensajes ya procesados y eventos `fromMe`.
 - Se limita el historial a 20 mensajes por usuario para controlar contexto y costo.
+
+## Migrar de Meta a Evolution
+
+1. Cambia `WHATSAPP_PROVIDER=evolution`
+2. Completa `EVOLUTION_API_URL`, `EVOLUTION_API_KEY` y `EVOLUTION_INSTANCE`
+3. Reinicia Freddy con:
+
+```bash
+pm2 restart freddy --update-env
+```
+
+4. En Evolution apunta el webhook a:
+
+```text
+https://tu-dominio/webhook/evolution
+```
 
 ## Deploy en Railway
 
@@ -176,8 +219,10 @@ Verifica el webhook de Meta.
 
 Recibe mensajes de WhatsApp y responde automaticamente.
 
+### `POST /webhook/evolution`
+
+Recibe mensajes desde Evolution API y responde automaticamente.
+
 ## Referencia OpenAI
 
-La integracion del SDK esta basada en el cliente oficial de Node.js y el endpoint `responses.create` de OpenAI:
-
-- [OpenAI Responses API](https://platform.openai.com/docs/api-reference/responses?lang=node.js)
+La integracion del SDK usa el cliente oficial de Node.js de OpenAI para generar respuestas comerciales naturales.

@@ -2,15 +2,29 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const required = [
-  "OPENAI_API_KEY",
-  "WHATSAPP_VERIFY_TOKEN",
-  "WHATSAPP_ACCESS_TOKEN",
-  "WHATSAPP_PHONE_NUMBER_ID"
-];
+const SUPPORTED_PROVIDERS = ["meta", "evolution"];
 
 export function validateEnv() {
-  const missing = required.filter((key) => !process.env[key]);
+  const provider = process.env.WHATSAPP_PROVIDER || "meta";
+
+  if (!SUPPORTED_PROVIDERS.includes(provider)) {
+    throw new Error(
+      `WHATSAPP_PROVIDER no soportado: ${provider}. Usa uno de: ${SUPPORTED_PROVIDERS.join(", ")}`
+    );
+  }
+
+  const commonRequired = ["OPENAI_API_KEY"];
+  const providerRequired =
+    provider === "evolution"
+      ? ["EVOLUTION_API_URL", "EVOLUTION_API_KEY", "EVOLUTION_INSTANCE"]
+      : [
+          "WHATSAPP_VERIFY_TOKEN",
+          "WHATSAPP_ACCESS_TOKEN",
+          "WHATSAPP_PHONE_NUMBER_ID"
+        ];
+  const missing = [...commonRequired, ...providerRequired].filter(
+    (key) => !process.env[key]
+  );
 
   if (missing.length) {
     throw new Error(
@@ -23,6 +37,7 @@ export const env = {
   nodeEnv: process.env.NODE_ENV || "development",
   port: Number(process.env.PORT || 3000),
   appBaseUrl: process.env.APP_BASE_URL || "http://localhost:3000",
+  whatsappProvider: process.env.WHATSAPP_PROVIDER || "meta",
   adminUsername: process.env.ADMIN_USERNAME || "admin",
   adminPassword: process.env.ADMIN_PASSWORD || "freddy-admin-2026",
   openAiApiKey: process.env.OPENAI_API_KEY,
@@ -30,6 +45,10 @@ export const env = {
   whatsappVerifyToken: process.env.WHATSAPP_VERIFY_TOKEN,
   whatsappAccessToken: process.env.WHATSAPP_ACCESS_TOKEN,
   whatsappPhoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
+  evolutionApiUrl: (process.env.EVOLUTION_API_URL || "").replace(/\/$/, ""),
+  evolutionApiKey: process.env.EVOLUTION_API_KEY || "",
+  evolutionInstance: process.env.EVOLUTION_INSTANCE || "",
+  evolutionWebhookSecret: process.env.EVOLUTION_WEBHOOK_SECRET || "",
   escalationEmail:
     process.env.WPS_ESCALATION_EMAIL || "wesfalia@wpsconsultingroup.com",
   escalationWhatsappNumber:
